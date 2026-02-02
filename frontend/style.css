@@ -182,3 +182,65 @@ select option {
     color: rgba(255, 255, 255, 0.5);
     margin-right: auto;
 }
+
+/* Responsiveness */
+@media (max-width: 850px) {
+    .toolbar {
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
+        padding: 10px;
+    }
+
+    .actions {
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 100%;
+        gap: 8px;
+    }
+
+    .btn {
+        flex: 1 1 auto;
+        min-width: 80px;
+        text-align: center;
+        padding: 6px 10px;
+        font-size: 0.85rem;
+    }
+
+    .footer {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 10px;
+    }
+
+    .oauth-panel {
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 100%;
+        gap: 8px;
+    }
+
+    .oauth-panel select,
+    .oauth-panel .submit-btn {
+        flex: 1 1 auto;
+        min-width: 120px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        width: 100vw;
+        height: 100vh;
+        border-radius: 0;
+    }
+
+    .title {
+        font-size: 1.1rem;
+    }
+
+    #editor {
+        font-size: 0.95rem;
+    }
+}
+}
