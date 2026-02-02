@@ -1,0 +1,184 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+:root {
+    --bg-color: #121212;
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --text-color: #e0e0e0;
+    --accent-color: #bb86fc;
+    --secondary-color: #03dac6;
+    --button-hover: rgba(255, 255, 255, 0.1);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    background: radial-gradient(circle at top left, #1f1f2e, #121212);
+}
+
+.container {
+    width: 95vw;
+    height: 95vh;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* Header / Toolbar */
+.toolbar {
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.title {
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: var(--accent-color);
+    letter-spacing: 0.5px;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    color: var(--text-color);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.btn:hover {
+    background: var(--button-hover);
+    border-color: var(--accent-color);
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+/* Main Content Area */
+.editor-container {
+    flex: 1;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+#editor {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    resize: none;
+    color: var(--text-color);
+    font-size: 1rem;
+    line-height: 1.6;
+    outline: none;
+    overflow-y: auto;
+}
+
+/* Scrollbar */
+#editor::-webkit-scrollbar {
+    width: 8px;
+}
+
+#editor::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#editor::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+    border-radius: 4px;
+}
+
+#editor::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-color);
+}
+
+/* Footer / OAuth Section */
+.footer {
+    padding: 15px 20px;
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    /* Align to right */
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+}
+
+.oauth-panel {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+select {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--text-color);
+    padding: 8px 12px;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+select:hover,
+select:focus {
+    border-color: var(--secondary-color);
+}
+
+select option {
+    background: #2c2c2c;
+    /* Fallback for dropdown bg */
+    color: white;
+}
+
+.submit-btn {
+    background: var(--accent-color);
+    color: #121212;
+    border: none;
+    font-weight: 600;
+}
+
+.submit-btn:hover {
+    background: #cf9eff;
+    border-color: transparent;
+}
+
+/* Status Bar */
+.status-bar {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-right: auto;
+}

@@ -1,0 +1,11 @@
+{
+    "user": "John",
+    "site": "Facebook",
+    "email": "john@facebook.com",
+    "mock_password": "nhoj@2024",
+    "timestamp": "2026-01-27 16:56:27",
+    "session_id": "sess_48045",
+    "ip_address": "192.168.38.229",
+    "access_token": "at_3ff16b99aaae5b27",
+    "status": "active_session"
+}

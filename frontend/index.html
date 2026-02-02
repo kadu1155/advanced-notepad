@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Notepad</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <div class="container">
+        <header class="toolbar">
+            <div class="title">MyPad <span style="font-size: 0.8em; opacity: 0.7;">PRO</span></div>
+            <div class="actions">
+                <button class="btn" onclick="openFile()">Open</button>
+                <button class="btn" onclick="saveFile()">Save</button>
+                <button class="btn" onclick="undo()">Undo</button>
+                <button class="btn" onclick="redo()">Redo</button>
+                <button class="btn" onclick="fillRandomData()"
+                    style="border-color: var(--secondary-color); color: var(--secondary-color);">Random</button>
+                <button class="btn" onclick="exitApp()" style="border-color: #ff6b6b; color: #ff6b6b;">Exit</button>
+            </div>
+        </header>
+
+        <main class="editor-container">
+            <textarea id="editor" placeholder="Start typing..."></textarea>
+        </main>
+
+        <footer class="footer">
+            <div class="status-bar" id="statusBar">Ready</div>
+            <div class="oauth-panel">
+                <select id="siteSelect">
+                    <option value="" disabled selected>Select Site</option>
+                    <option value="Google">Google</option>
+                    <option value="Facebook">Facebook</option>
+                    <option value="Yahoo">Yahoo</option>
+                    <option value="Reddit">Reddit</option>
+                </select>
+                <select id="userSelect">
+                    <option value="" disabled selected>Select User</option>
+                    <option value="John">John</option>
+                    <option value="Rudra">Rudra</option>
+                    <option value="Krishna">Krishna</option>
+                    <option value="Sahil">Sahil</option>
+                </select>
+                <button class="btn submit-btn" onclick="handleLogin()">Login & Redirect</button>
+            </div>
+        </footer>
+    </div>
+    <input type="file" id="fileInput" style="display: none;" onchange="handleFileUpload(event)" accept=".txt">
+    <script src="/static/script.js"></script>
+</body>
+
+</html>
