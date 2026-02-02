@@ -1,6 +1,35 @@
-// DOM Elements
 const editor = document.getElementById('editor');
 const statusBar = document.getElementById('statusBar');
+
+// --- Real-Time Collaboration Logic ---
+const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+const ws = new WebSocket(`${proto}://${window.location.host}/ws`);
+
+ws.onopen = () => {
+    console.log("Connected to Real-Time Server");
+    showMessage("Live Sync: Online 🟢");
+};
+
+ws.onmessage = (event) => {
+    // Determine cursor position to try and preserve it
+    const cursorPosition = editor.selectionStart;
+    editor.value = event.data;
+    // Simple cursor handling - putting it back might be tricky if text length changed significantly
+    // but better than resetting to 0.
+    if (cursorPosition <= editor.value.length) {
+        editor.setSelectionRange(cursorPosition, cursorPosition);
+    }
+};
+
+ws.onclose = () => {
+    showMessage("Live Sync: Offline 🔴");
+};
+
+// Send updates when typing
+editor.addEventListener('input', () => {
+    ws.send(editor.value);
+});
+// -------------------------------------
 
 // Undo/Redo Management 
 function undo() {
@@ -38,42 +67,106 @@ async function handleFileUpload(event) {
     if (!file) return;
 
     showMessage(`Reading ${file.name}...`);
-    const formData = new FormData();
-    formData.append('file', file);
 
-    try {
-        const response = await fetch('/api/open', {
-            method: 'POST',
-            body: formData
-        });
-        const data = await response.json();
+    // CHECK SECURE MODE
+    const isSecure = document.getElementById('secureMode').checked;
 
-        if (data.status === 'success') {
-            editor.value = data.content;
-            showMessage(`Loaded: ${data.filename}`);
-        } else {
-            showMessage(`Error: ${data.message}`);
+    if (isSecure) {
+        const password = prompt("Enter password to decrypt:");
+        if (!password) return; // Cancelled
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const fileContent = e.target.result; // This is the encrypted string
+            try {
+                const response = await fetch('/api/open_secure', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: fileContent, password: password })
+                });
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    editor.value = data.content;
+                    showMessage(`Decrypted: ${file.name}`);
+                } else {
+                    showMessage(`Error: ${data.message}`);
+                }
+            } catch (error) {
+                showMessage(`Decryption Error: ${error}`);
+            }
+        };
+        reader.readAsText(file);
+
+    } else {
+        // NORMAL OPEN
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/api/open', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                editor.value = data.content;
+                showMessage(`Loaded: ${data.filename}`);
+            } else {
+                showMessage(`Error: ${data.message}`);
+            }
+        } catch (error) {
+            showMessage(`Upload Error: ${error}`);
         }
-    } catch (error) {
-        showMessage(`Upload Error: ${error}`);
     }
     // Reset input
     event.target.value = '';
 }
 
 function saveFile() {
-    showMessage("Downloading file...");
+    // CHECK SECURE MODE
+    const isSecure = document.getElementById('secureMode').checked;
     const content = editor.value;
-    const blob = new Blob([content], { type: 'text/plain' });
+
+    if (isSecure) {
+        const password = prompt("Set a password for this file:");
+        if (!password) return;
+
+        showMessage("Encrypting...");
+        fetch('/api/save_secure', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: content, password: password })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    downloadString(data.encrypted_data, data.filename);
+                    showMessage("Encrypted File Downloaded!");
+                } else {
+                    showMessage("Encryption Failed.");
+                }
+            });
+
+    } else {
+        // NORMAL SAVE
+        showMessage("Downloading file...");
+        downloadString(content, 'notepad_content.txt');
+        showMessage("File downloaded!");
+    }
+}
+
+function downloadString(text, filename) {
+    const blob = new Blob([text], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.style.display = 'none';
     a.href = url;
-    a.download = 'notepad_content.txt';
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
-    showMessage("File downloaded!");
 }
 
 async function exitApp() {
@@ -86,11 +179,17 @@ async function exitApp() {
 
 async function handleLogin() {
     const site = document.getElementById('siteSelect').value;
-    const user = document.getElementById('userSelect').value;
+    let user = document.getElementById('userSelect').value;
 
     if (!site || !user) {
         alert("Please select both a Site and a User.");
         return;
+    }
+
+    // Handle Custom User
+    if (user === "Custom") {
+        user = prompt("Enter your Name or Username to simulate:");
+        if (!user) return; // Stop if cancelled or empty
     }
 
     showMessage(`Logging in ${user} to ${site}...`);

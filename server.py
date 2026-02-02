@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Body, UploadFile, File
+from fastapi import FastAPI, Body, UploadFile, File, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
@@ -7,8 +7,33 @@ import os
 import json
 import random
 import time
+import uuid
+import base64
+import asyncio
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 app = FastAPI()
+
+# --- Real-Time Collaboration Manager ---
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str, sender: WebSocket):
+        for connection in self.active_connections:
+            if connection != sender: # Don't send back to the person who typed it
+                await connection.send_text(message)
+
+manager = ConnectionManager()
 
 # Mount frontend static files
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
@@ -16,22 +41,49 @@ app.mount("/static", StaticFiles(directory="frontend"), name="static")
 class SaveRequest(BaseModel):
     content: str
 
+class SecureRequest(BaseModel):
+    content: str
+    password: str
+
+# --- Helper for Encryption ---
+def get_key(password: str, salt: bytes) -> bytes:
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=100000,
+    )
+    return base64.urlsafe_b64encode(kdf.derive(password.encode()))
+
 # API Endpoints
 @app.get("/")
 def read_root():
     return FileResponse('frontend/index.html')
 
 @app.get("/success")
-def success_page(user: str, site: str):
-    # Load the saved data for the specific user
+def success_page(user: str, site: str, session_id: str = None):
+    # Load the saved data for the specific session
     saved_data = "No data found"
-    file_name = f"{user.lower()}_login_data.json"
-    if os.path.exists(file_name):
-        try:
-            with open(file_name, "r") as f:
-                saved_data = json.dumps(json.load(f), indent=4)
-        except:
-            pass
+    
+    # Try loading from specific session file first (New Way)
+    if session_id:
+        file_name = f"login_data_{session_id}.json"
+        if os.path.exists(file_name):
+            try:
+                with open(file_name, "r") as f:
+                    saved_data = json.dumps(json.load(f), indent=4)
+            except:
+                pass
+    
+    # Fallback for old links (Legacy Way)
+    if saved_data == "No data found":
+        file_name = f"{user.lower()}_login_data.json"
+        if os.path.exists(file_name):
+            try:
+                with open(file_name, "r") as f:
+                    saved_data = json.dumps(json.load(f), indent=4)
+            except:
+                pass
 
     site_url = f"https://www.{site.lower()}.com"
     
@@ -103,10 +155,58 @@ async def open_file(file: UploadFile = File(...)):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await manager.broadcast(data, websocket)
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+@app.post("/api/save_secure")
+def save_secure(data: SecureRequest):
+    try:
+        # Generate a random salt
+        salt = os.urandom(16)
+        key = get_key(data.password, salt)
+        f = Fernet(key)
+        encrypted_content = f.encrypt(data.content.encode())
+        
+        # Combine salt + encrypted content so we can decrypt later
+        final_data = base64.b64encode(salt + encrypted_content).decode('utf-8')
+        
+        return {"status": "success", "encrypted_data": final_data, "filename": "secure_note.enc"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/open_secure")
+def open_secure(data: SecureRequest):
+    try:
+        # Decode the file data
+        raw_data = base64.b64decode(data.content)
+        
+        # Extract salt (first 16 bytes) and content
+        salt = raw_data[:16]
+        encrypted_content = raw_data[16:]
+        
+        key = get_key(data.password, salt)
+        f = Fernet(key)
+        
+        decrypted_content = f.decrypt(encrypted_content).decode('utf-8')
+        return {"status": "success", "content": decrypted_content}
+    except Exception:
+        # Generic error message to avoid leaking info
+        return {"status": "error", "message": "Invalid password or corrupted file."}
+
 @app.post("/api/login")
 def login_user(data: dict = Body(...)):
     site = data.get("site")
     user = data.get("user")
+    
+    # Generate unique session ID for web isolation
+    unique_session_id = str(uuid.uuid4())
     
     # Generate random metadata and MOCK CREDENTIALS
     login_info = {
@@ -115,20 +215,21 @@ def login_user(data: dict = Body(...)):
         "email": f"{user.lower()}@{site.lower()}.com",
         "mock_password": f"{user[::-1].lower()}@2024",
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "session_id": f"sess_{random.randint(10000, 99999)}",
+        "session_id": unique_session_id, # Use REAL unique ID
         "ip_address": f"192.168.{random.randint(0, 255)}.{random.randint(0, 255)}",
         "access_token": f"at_{random.getrandbits(64):x}",
         "status": "active_session"
     }
     
-    file_name = f"{user.lower()}_login_data.json"
+    # Save to UNIQUE file to avoid collisions on web server
+    file_name = f"login_data_{unique_session_id}.json"
     try:
         with open(file_name, "w") as f:
             json.dump(login_info, f, indent=4)
     except Exception as e:
         print(f"Failed to save login data: {e}")
 
-    target_url = f"/success?user={user}&site={site}"
+    target_url = f"/success?user={user}&site={site}&session_id={unique_session_id}"
     return {"status": "success", "url": target_url}
 
 if __name__ == "__main__":

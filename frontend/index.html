@@ -20,6 +20,10 @@
                 <button class="btn" onclick="fillRandomData()"
                     style="border-color: var(--secondary-color); color: var(--secondary-color);">Random</button>
                 <button class="btn" onclick="exitApp()" style="border-color: #ff6b6b; color: #ff6b6b;">Exit</button>
+                <div style="display: flex; align-items: center; margin-left: 10px;">
+                    <input type="checkbox" id="secureMode" style="margin-right: 5px;">
+                    <label for="secureMode" style="color: #cbd5e1; font-size: 0.9em;">Secret Mode 🔒</label>
+                </div>
             </div>
         </header>
 
@@ -43,6 +47,7 @@
                     <option value="Rudra">Rudra</option>
                     <option value="Krishna">Krishna</option>
                     <option value="Sahil">Sahil</option>
+                    <option value="Custom">Other...</option>
                 </select>
                 <button class="btn submit-btn" onclick="handleLogin()">Login & Redirect</button>
             </div>
